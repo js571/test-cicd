@@ -11,8 +11,7 @@
     "egg": "^3.17.5",
     "egg-mysql": "^4.0.0",
     "egg-redis": "^2.6.0",
-    "egg-scripts": "2",
-    "mysql2": "^3.11.3"
+    "egg-scripts": "2"
   },
   "devDependencies": {
     "egg-bin": "6",

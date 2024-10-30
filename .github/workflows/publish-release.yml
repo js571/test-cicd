@@ -1,0 +1,59 @@
+name: 自动部署新版本到服务器
+# 在特定 tag 被 push 以后被触发
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+jobs:
+  publish-release:
+    runs-on: ubuntu-latest
+    steps:
+      # checkout 代码
+      - uses: actions/checkout@v2
+      # 创建 env 文件
+      # build docker image
+      # start the app
+      - name: 'create env file'
+        run: |
+          touch .env
+          echo MYSQL_USER=${{ secrets.MYSQL_USER }} >> .env
+          echo MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} >> .env
+          echo MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }} >> .env
+          echo MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} >> .env
+          echo MYSQL_HOST=${{ secrets.MYSQL_HOST }} >> .env
+          echo MYSQL_PORT=${{ secrets.MYSQL_PORT }} >> .env
+          echo REDIS_PORT=${{ secrets.REDIS_PORT }} >> .env
+          echo REDIS_TEST_PORT=${{ secrets.REDIS_TEST_PORT }} >> .env
+          echo REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }} >> .env
+          echo ACR_USERNAME=${{ secrets.ACR_USERNAME }} >> .env
+          echo ACR_PASSWORD=${{ secrets.ACR_PASSWORD }} >> .env
+
+      # 使用阿里云ACR 完成 docker login 
+      - name: Login to Aliyun Container Registry (ACR)
+        uses: aliyun/acr-login@v1
+        with:
+          login-server: https://registry.cn-hangzhou.aliyuncs.com
+          region-id: cn-hangzhou
+          username: "${{ secrets.ACR_USERNAME }}"
+          password: "${{ secrets.ACR_PASSWORD }}"
+      # 使用正确的github tag 对应ACR tag 进行 docker build
+      - name: Build image for ACR docker
+        run: docker build --tag "registry.cn-hangzhou.aliyuncs.com/maat/testcicd:${{github.ref_name}}" .
+      # 使用标记的 tag 进行 push
+      - name: Push Image to ACR
+        run: docker push registry.cn-hangzhou.aliyuncs.com/maat/testcicd:${{github.ref_name}} 
+      # 查找 docker-compose-online 文件 并且完成版本替换
+      - name: Find and Replace
+        uses: jacobtomlinson/gha-find-replace@v2
+        with: 
+          find: "{{tag}}"
+          replace: ${{github.ref_name}}
+          include: "docker-compose-online.yml"
+      - run: cat docker-compose-online.yml
+      # 拷贝必须文件到一个文件夹，包括 .env, docker-compose-online.yml, mongo-entrypoint
+      - name: 'copy necessary files in to one folder'
+        run: |
+          mkdir testcicd-backend 
+          cp .env docker-compose-online.yml testcicd-backend
+          cp -r mongo-entrypoint testcicd-backend
+          ls -a testcicd-backend

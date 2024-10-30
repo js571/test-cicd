@@ -43,7 +43,7 @@ services:
     build:
       context: . # 当前目录
       dockerfile: Dockerfile # 基于 Dockerfile 构建
-    image: cicd-backend
+    image: registry.cn-hangzhou.aliyuncs.com/maat/testcicd:{{tag}}
     container_name: cicd-backend
     ports:
       - 7002:7001
