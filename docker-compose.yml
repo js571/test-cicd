@@ -1,0 +1,52 @@
+version: '3'
+services:
+  cicd-redis:
+    image: redis:6
+    container_name: cicd-redis
+    command: >
+      --requirepass ${REDIS_PASSWORD}
+    ports:
+      - ${REDIS_PORT}:6379
+    env_file:
+      - .env
+    volumes:
+      - cicdredis_data:/data  # 挂载卷到 /data 目录
+    environment:
+      - TZ=Asia/Shanghai  # 设置时区为东8区
+  cicd-mysql:
+    image: mysql:8.0
+    container_name: cicd-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_SQL_MODE: "STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+      TZ: "Asia/Shanghai"
+    ports:
+      - 3307:3306
+    volumes:
+      - cicdmysql_data:/var/lib/mysql  # 挂载卷到 MySQL 数据目录
+      - './mysql-entrypoint/:/docker-entrypoint-initdb.d/'  # 挂载初始化脚本
+    env_file:
+      - .env
+    command: --default-authentication-plugin=mysql_native_password  # 设置默认身份验证插件
+  cicd-backend:
+    depends_on:
+      - cicd-redis
+      - cicd-mysql
+    build:
+      context: . # 当前目录
+      dockerfile: Dockerfile # 基于 Dockerfile 构建
+    image: cicd-backend
+    container_name: cicd-backend
+    ports:
+      - 7002:7001
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Shanghai  # 设置时区为东8区
+
+volumes:
+  cicdredis_data:  # 定义卷
+  cicdmysql_data:  # 定义 MySQL 数据卷
