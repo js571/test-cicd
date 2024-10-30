@@ -36,6 +36,7 @@ jobs:
       # 使用正确的github tag 对应ACR tag 进行 docker build.
       - name: Build image for ACR docker
         run: docker build --tag "registry.cn-hangzhou.aliyuncs.com/maat/testcicd:${{github.ref_name}}" .
+      - name: 打印本地image
         run: docker image ls
       # 使用标记的 tag 进行 push
       - name: Push Image to ACR
