@@ -6,7 +6,7 @@ services:
     command: >
       --requirepass ${REDIS_PASSWORD}
     ports:
-      - ${REDIS_PORT}:6379
+      - 36379:6379
     env_file:
       - .env
     volumes:
